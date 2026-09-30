@@ -50,17 +50,26 @@ collect_blocks <- function(pkgdir) {
   # Recognize bare @export methods for generics already available to the
   # documenting process, without treating every dotted function as an S3
   # method or loading arbitrary dependencies.
-  external_generic_names <- unique(unlist(lapply(
-    loadedNamespaces(),
-    function(ns) {
-      env <- asNamespace(ns)
-      names <- ls(env, all.names = TRUE)
-      names[vapply(names, function(name) {
-        value <- get(name, envir = env, inherits = FALSE)
-        is.function(value) && !is.na(find_usemethod(body(value)))
-      }, logical(1))]
-    }
-  )))
+  base_namespace <- asNamespace("base")
+  base_generic_names <- c(
+    get(".internalGenerics", envir = base_namespace),
+    get(".S3PrimitiveGenerics", envir = base_namespace),
+    names(get(".knownS3Generics", envir = base_namespace))
+  )
+  external_generic_names <- unique(c(
+    base_generic_names,
+    unlist(lapply(
+      loadedNamespaces(),
+      function(ns) {
+        env <- asNamespace(ns)
+        names <- ls(env, all.names = TRUE)
+        names[vapply(names, function(name) {
+          value <- get(name, envir = env, inherits = FALSE)
+          is.function(value) && !is.na(find_usemethod(body(value)))
+        }, logical(1))]
+      }
+    ))
+  ))
   generic_names <- unique(c(generic_names, external_generic_names))
   for (i in seq_along(blocks)) {
     b <- blocks[[i]]

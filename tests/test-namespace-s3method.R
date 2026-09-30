@@ -57,6 +57,29 @@ stopifnot("S3method(print, abcd)" %in% ns)
 stopifnot(!("export(print.abcd)" %in% ns))
 stopifnot(!file.exists(file.path(pkgdir, "man", "print.abcd.Rd")))
 
+# Bare @export on methods for base primitive, internal, and group generics
+# is inferred from base R's generic registries, even though these generics do
+# not contain a UseMethod() call.
+pkgdir <- make_test_pkg(a.R = c(
+  "#' @export",
+  "c.abcd <- function(x, ...) x",
+  "",
+  "#' @export",
+  "length.abcd <- function(x) 1L",
+  "",
+  "#' @export",
+  "Math.abcd <- function(x) x"
+))
+roxygenise(pkgdir)
+ns <- read_ns(pkgdir)
+stopifnot("S3method(c, abcd)" %in% ns)
+stopifnot("S3method(length, abcd)" %in% ns)
+stopifnot("S3method(Math, abcd)" %in% ns)
+stopifnot(!any(grepl("^export\\((c|length|Math)\\.abcd\\)$", ns)))
+stopifnot(!file.exists(file.path(pkgdir, "man", "c.abcd.Rd")))
+stopifnot(!file.exists(file.path(pkgdir, "man", "length.abcd.Rd")))
+stopifnot(!file.exists(file.path(pkgdir, "man", "Math.abcd.Rd")))
+
 # A method grouped with its generic keeps \method{}{} usage markup.
 pkgdir <- make_test_pkg(a.R = c(
   "#' A generic function",
